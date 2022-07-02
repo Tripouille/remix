@@ -1,15 +1,30 @@
 /** @format */
 
-import type { LinksFunction } from "@remix-run/node";
-import { Outlet, Link } from "@remix-run/react";
+import type { LinksFunction, LoaderFunction } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { Link, Outlet, useLoaderData } from "@remix-run/react";
 
+import { db } from "~/utils/db.server";
 import stylesUrl from "~/styles/jokes.css";
 
 export const links: LinksFunction = () => {
     return [{ rel: "stylesheet", href: stylesUrl }];
 };
 
+type LoaderData = {
+    jokeListItems: Array<{ id: string; name: string }>;
+};
+
+export const loader: LoaderFunction = async () => {
+    const data: LoaderData = {
+        jokeListItems: await db.joke.findMany(),
+    };
+    return json(data);
+};
+
 export default function JokesRoute() {
+    const data = useLoaderData<LoaderData>();
+
     return (
         <div className="jokes-layout">
             <header className="jokes-header">
@@ -20,6 +35,7 @@ export default function JokesRoute() {
                             title="Remix Jokes"
                             aria-label="Remix Jokes"
                         >
+                            <span className="logo">🤪</span>
                             <span className="logo-medium">J🤪KES</span>
                         </Link>
                     </h1>
@@ -31,9 +47,11 @@ export default function JokesRoute() {
                         <Link to=".">Get a random joke</Link>
                         <p>Here are a few more jokes to check out:</p>
                         <ul>
-                            <li>
-                                <Link to="some-joke-id">Hippo</Link>
-                            </li>
+                            {data.jokeListItems.map((joke) => (
+                                <li key={joke.id}>
+                                    <Link to={joke.id}>{joke.name}</Link>
+                                </li>
+                            ))}
                         </ul>
                         <Link to="new" className="button">
                             Add your own
